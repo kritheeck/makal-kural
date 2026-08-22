@@ -85,6 +85,19 @@ async function dispatchEmail(complaint: Complaint, recipient: Representative) {
   const fromEmail = process.env.EMAIL_FROM || 'Makkal Kural <noreply@makkalkural.org>';
   const subject = `[Makkal Kural Official Grievance] #${complaint.reference_number} — ${complaint.category.toUpperCase()} — ${complaint.locality}, ${complaint.district}`;
 
+  // ── Test Mode ──────────────────────────────────────────────────────────────
+  const isTestMode = process.env.EMAIL_TEST_MODE === 'true';
+  const testModeEmail = process.env.TEST_MODE_EMAIL;
+  const actualRecipientEmail = isTestMode && testModeEmail ? testModeEmail : recipient.email;
+  const testModeBanner = isTestMode && testModeEmail
+    ? `<div style="background:#fef3c7;border:2px dashed #f59e0b;padding:12px 16px;margin:0 0 16px 0;border-radius:6px;font-size:13px;color:#92400e;">
+        🧪 <strong>TEST MODE ACTIVE</strong> — This email was intercepted and redirected to <strong>${testModeEmail}</strong>.<br/>
+        <em>Intended real recipient:</em> ${recipient.name} &lt;${recipient.email}&gt; (${recipient.role})<br/>
+        Set <code>EMAIL_TEST_MODE=false</code> in .env.local to enable live delivery to ministers.
+       </div>`
+    : '';
+  // ───────────────────────────────────────────────────────────────────────────
+
   const isMinisterLevel = getMinisterLevel(recipient.role);
   const routingNote = isMinisterLevel
     ? 'This grievance has been <strong>directly routed</strong> to the elected representative\'s official account for immediate action and oversight.'
@@ -122,9 +135,10 @@ async function dispatchEmail(complaint: Complaint, recipient: Representative) {
             <span class="badge">Official Public Grievance</span>
             ${isMinisterLevel ? '<span class="minister-badge">Direct Minister / MLA Routing</span>' : ''}
             <h2 style="margin: 0; font-size: 20px;">மக்கள் குரல் — Makkal Kural</h2>
-            <p style="margin: 4px 0 0 0; font-size: 13px; color: #cbd5e1;">Citizen Grievance Routing & Tracking Portal</p>
+            <p style="margin: 4px 0 0 0; font-size: 13px; color: #cbd5e1;">Citizen Grievance Routing &amp; Tracking Portal</p>
           </div>
           <div class="content">
+            ${testModeBanner}
             <p><strong>To:</strong> ${recipient.name} (${recipient.role}), ${recipient.organization}</p>
             <div class="routing-box">${routingNote}</div>
 
@@ -189,8 +203,8 @@ async function dispatchEmail(complaint: Complaint, recipient: Representative) {
         },
         body: JSON.stringify({
           from: fromEmail,
-          to: [recipient.email],
-          subject,
+          to: [actualRecipientEmail],
+          subject: isTestMode ? `[TEST MODE] ${subject}` : subject,
           html: htmlBody,
         }),
       });
