@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getComplaintById, getComplaintByReference, updateComplaintStatus } from '@/lib/supabase/database';
+import { getComplaintWithDetails, updateComplaintStatus } from '@/lib/supabase/database';
 
 export async function GET(
   req: NextRequest,
@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const complaint = await getComplaintById(id) || await getComplaintByReference(id);
+    const complaint = await getComplaintWithDetails(id);
 
     if (!complaint) {
       return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });
@@ -40,7 +40,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Complaint not found to update' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: updated });
+    return NextResponse.json({ success: true, data: { id, status } });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

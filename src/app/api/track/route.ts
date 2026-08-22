@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getComplaintByReference, getRepresentativeById } from '@/lib/supabase/database';
+import { getComplaintWithDetails } from '@/lib/supabase/database';
 import { maskEmail, maskPhone } from '@/lib/utils';
 
 export async function GET(req: NextRequest) {
@@ -11,15 +11,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Reference number is required' }, { status: 400 });
     }
 
-    const complaint = await getComplaintByReference(ref);
+    const complaint = await getComplaintWithDetails(ref);
 
     if (!complaint) {
       return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });
     }
-
-    const assignedRepresentative = complaint.assigned_representative_id
-      ? await getRepresentativeById(complaint.assigned_representative_id)
-      : undefined;
 
     const maskedComplaint = {
       id: complaint.id,
@@ -37,7 +33,7 @@ export async function GET(req: NextRequest) {
       locality: complaint.locality,
       severity: complaint.severity,
       status: complaint.status,
-      assigned_representative: assignedRepresentative,
+      assigned_representative: complaint.assigned_representative,
       submitter_masked_name: complaint.is_anonymous
         ? 'Anonymous Citizen'
         : complaint.submitter_name.charAt(0) + '*** ' + (complaint.submitter_name.split(' ')[1] || ''),

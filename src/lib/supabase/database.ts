@@ -68,6 +68,33 @@ export async function getComplaintById(id: string): Promise<Complaint | null> {
   return data;
 }
 
+export async function getComplaintWithDetails(idOrRef: string): Promise<Complaint | null> {
+  if (!isSupabaseConfigured || !supabase) return null;
+  let base = await getComplaintById(idOrRef);
+  if (!base) base = await getComplaintByReference(idOrRef);
+  if (!base) return null;
+
+  const [updatesRes, logsRes, attachmentsRes, repRes] = await Promise.all([
+    supabase.from('complaint_updates').select('*').eq('complaint_id', base.id).order('created_at', { ascending: false }),
+    supabase.from('delivery_logs').select('*').eq('complaint_id', base.id).order('sent_at', { ascending: false }),
+    supabase.from('complaint_attachments').select('*').eq('complaint_id', base.id),
+    base.assigned_representative_id ? supabase.from('representatives').select('*').eq('id', base.assigned_representative_id).maybeSingle() : Promise.resolve({ data: null }),
+  ]);
+
+  const updates = updatesRes.data || [];
+  const logs = logsRes.data || [];
+  const attachments = attachmentsRes.data || [];
+  const representative = repRes.data;
+
+  return {
+    ...base,
+    updates,
+    delivery_logs: logs,
+    attachments,
+    assigned_representative: representative || undefined,
+  };
+}
+
 export async function createComplaint(complaint: Complaint): Promise<Complaint | null> {
   if (!isSupabaseConfigured || !supabase) return null;
   const { data, error } = await supabase.from('complaints').insert(complaint).select().single();
