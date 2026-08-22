@@ -1,0 +1,104 @@
+# dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ==========================================
+# Environment files — NEVER commit secrets!
+# ==========================================
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+# Allow .env.example (no real secrets)
+!.env.example
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+
+# ==========================================
+# AI coding assistant tool directories
+# ==========================================
+.agent/
+.agents/
+.amazonq/
+.augment/
+.bob/
+.claude/
+.cline/
+.clinerules/
+.codeartsdoer/
+.codebuddy/
+.commandcode/
+.continue/
+.cospec/
+.crush/
+.cursor/
+.devin/
+.factory/
+.forge/
+.gemini/
+.hermes/
+.iflow/
+.junie/
+.kilo/
+.kilocode/
+.kimi-code/
+.kiro/
+.kombai/
+.lingma/
+.omp/
+.opencode/
+.openproxy/
+.pi/
+.qoder/
+.qwen/
+.roo/
+.rovodev/
+.trae/
+.vibe/
+.zcode/
+openspec/
+
+# ==========================================
+# Editor & IDE
+# ==========================================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ==========================================
+# Database & binary files
+# ==========================================
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db

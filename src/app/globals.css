@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 40% 98%;
+    --foreground: 222 47% 11%;
+  }
+
+  body {
+    @apply bg-navy-50/50 text-navy-900 antialiased font-sans selection:bg-emerald-200 selection:text-emerald-900;
+  }
+}
+
+/* Custom styles for printing civic complaint petitions and receipts */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  header, footer, nav, button, .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-receipt {
+    box-shadow: none !important;
+    border: 1px solid #000 !important;
+    padding: 0 !important;
+  }
+}
