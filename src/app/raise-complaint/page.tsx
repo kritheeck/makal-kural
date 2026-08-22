@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/components/providers/language-provider';
 import { SeverityLevel, PreferredLanguage, Representative, DeliveryLog, DeliveryChannel } from '@/types/database';
@@ -82,7 +82,17 @@ export default function RaiseComplaintPage() {
   const [copiedRef, setCopiedRef] = useState(false);
 
   // Routing preview computation
-  const routing = routeComplaintToRepresentative(category, district, constituency);
+  const [routing, setRouting] = useState<any>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const computeRouting = async () => {
+      const result = await routeComplaintToRepresentative(category, district, constituency);
+      if (!cancelled) setRouting(result);
+    };
+    computeRouting();
+    return () => { cancelled = true; };
+  }, [category, district, constituency]);
 
   // Validation per step
   const validateCurrentStep = (): boolean => {
@@ -144,7 +154,8 @@ export default function RaiseComplaintPage() {
     setErrors({});
 
     try {
-      const payload = {
+      const formData = new FormData();
+      formData.append('payload', JSON.stringify({
         category,
         subcategory,
         state: 'Tamil Nadu',
@@ -168,18 +179,16 @@ export default function RaiseComplaintPage() {
         submitterPhone,
         submitterLanguage: submitterLang,
         isAnonymous,
-        attachments: attachments.map(a => ({
-          fileName: a.fileName,
-          fileUrl: a.fileUrl,
-          mimeType: a.mimeType,
-          fileSize: a.fileSize,
-        })),
-      };
+        attachmentCount: attachments.length,
+      }));
+
+      attachments.forEach((a, idx) => {
+        formData.append(`attachment_${idx}`, a.file);
+      });
 
       const res = await fetch('/api/complaints', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       const json = await res.json();
@@ -493,48 +502,56 @@ export default function RaiseComplaintPage() {
 
           {currentStep === 7 && (
             <div className="space-y-6">
-              <StepRouting
-                representative={routing.representative}
-                isVerified={routing.isVerified}
-                routingReason={routing.routingReason}
-                category={category}
-                district={district}
-                locality={locality}
-                title={aiTitle || title}
-                description={aiDescription || description}
-              />
+              {!routing ? (
+                <Card className="border-navy-200 p-6 text-xs text-navy-500">
+                  Computing routing preview…
+                </Card>
+              ) : (
+                <>
+                  <StepRouting
+                    representative={routing.representative}
+                    isVerified={routing.isVerified}
+                    routingReason={routing.routingReason}
+                    category={category}
+                    district={district}
+                    locality={locality}
+                    title={aiTitle || title}
+                    description={aiDescription || description}
+                  />
 
-              <StepPreview
-                category={category}
-                subcategory={subcategory}
-                district={district}
-                city={city}
-                constituency={constituency}
-                locality={locality}
-                title={title}
-                description={description}
-                aiTitle={aiTitle}
-                aiDescription={aiDescription}
-                dateStarted={dateStarted}
-                severity={severity}
-                submitterName={submitterName}
-                submitterEmail={submitterEmail}
-                submitterPhone={submitterPhone}
-                attachments={attachments}
-                representative={routing.representative}
-                deliveryLogs={routing.representative ? [
-                  { id: 'preview-email', complaint_id: '', channel: 'EMAIL' as DeliveryChannel, status: 'PENDING' as any, recipient: routing.representative.email, sent_at: new Date().toISOString() },
-                  ...(routing.representative.role.toLowerCase().includes('minister') || routing.representative.role.toLowerCase().includes('mla') || routing.representative.role.toLowerCase().includes('chief minister') ? [
-                    { id: 'preview-x', complaint_id: '', channel: 'X_API' as DeliveryChannel, status: 'PENDING' as any, recipient: routing.representative.email, sent_at: new Date().toISOString() },
-                    { id: 'preview-whatsapp', complaint_id: '', channel: 'WHATSAPP' as DeliveryChannel, status: 'PENDING' as any, recipient: routing.representative.email, sent_at: new Date().toISOString() },
-                    { id: 'preview-sms', complaint_id: '', channel: 'SMS' as DeliveryChannel, status: 'PENDING' as any, recipient: routing.representative.email, sent_at: new Date().toISOString() },
-                    { id: 'preview-portal', complaint_id: '', channel: 'PORTAL' as DeliveryChannel, status: 'PENDING' as any, recipient: routing.representative.email, sent_at: new Date().toISOString() },
-                  ] : [])
-                ] : undefined}
-                legalConfirmed={legalConfirmed}
-                onConfirmChange={(val) => setLegalConfirmed(val)}
-                error={errors.legal}
-              />
+                  <StepPreview
+                    category={category}
+                    subcategory={subcategory}
+                    district={district}
+                    city={city}
+                    constituency={constituency}
+                    locality={locality}
+                    title={title}
+                    description={description}
+                    aiTitle={aiTitle}
+                    aiDescription={aiDescription}
+                    dateStarted={dateStarted}
+                    severity={severity}
+                    submitterName={submitterName}
+                    submitterEmail={submitterEmail}
+                    submitterPhone={submitterPhone}
+                    attachments={attachments}
+                    representative={routing.representative}
+                    deliveryLogs={routing.representative ? [
+                      { id: 'preview-email', complaint_id: '', channel: 'EMAIL' as DeliveryChannel, status: 'PENDING' as any, recipient: routing.representative.email, sent_at: new Date().toISOString() },
+                      ...(routing.representative.role.toLowerCase().includes('minister') || routing.representative.role.toLowerCase().includes('mla') || routing.representative.role.toLowerCase().includes('chief minister') ? [
+                        { id: 'preview-x', complaint_id: '', channel: 'X_API' as DeliveryChannel, status: 'PENDING' as any, recipient: routing.representative.email, sent_at: new Date().toISOString() },
+                        { id: 'preview-whatsapp', complaint_id: '', channel: 'WHATSAPP' as DeliveryChannel, status: 'PENDING' as any, recipient: routing.representative.email, sent_at: new Date().toISOString() },
+                        { id: 'preview-sms', complaint_id: '', channel: 'SMS' as DeliveryChannel, status: 'PENDING' as any, recipient: routing.representative.email, sent_at: new Date().toISOString() },
+                        { id: 'preview-portal', complaint_id: '', channel: 'PORTAL' as DeliveryChannel, status: 'PENDING' as any, recipient: routing.representative.email, sent_at: new Date().toISOString() },
+                      ] : [])
+                    ] : undefined}
+                    legalConfirmed={legalConfirmed}
+                    onConfirmChange={(val) => setLegalConfirmed(val)}
+                    error={errors.legal}
+                  />
+                </>
+              )}
             </div>
           )}
 

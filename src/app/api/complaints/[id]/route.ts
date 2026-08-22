@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mockStore } from '@/lib/supabase/mock-store';
+import { getComplaintById, getComplaintByReference, updateComplaintStatus } from '@/lib/supabase/database';
 
 export async function GET(
   req: NextRequest,
@@ -7,7 +7,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const complaint = mockStore.getComplaintById(id) || mockStore.getComplaintByReference(id);
+    const complaint = await getComplaintById(id) || await getComplaintByReference(id);
 
     if (!complaint) {
       return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });
@@ -28,10 +28,11 @@ export async function PATCH(
     const body = await req.json();
     const { status, publicMessage, assignedRepresentativeId } = body;
 
-    const updated = mockStore.updateComplaintStatus(
+    const updated = await updateComplaintStatus(
       id,
       status,
       publicMessage,
+      true,
       assignedRepresentativeId
     );
 

@@ -6,6 +6,7 @@ import { UploadCloud, File, Image as ImageIcon, X, AlertCircle } from 'lucide-re
 import { Button } from '@/components/ui/button';
 
 export interface UploadedFileMeta {
+  file: File;
   fileName: string;
   fileUrl: string;
   mimeType: string;
@@ -58,9 +59,9 @@ export function StepEvidence({ attachments, onChange }: StepEvidenceProps) {
         return;
       }
 
-      // Create local object URL for preview & submission
       const objectUrl = URL.createObjectURL(file);
       newAttachments.push({
+        file,
         fileName: file.name,
         fileUrl: objectUrl,
         mimeType: file.type,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mockStore } from '@/lib/supabase/mock-store';
+import { getComplaintById, getRepresentativeById, createDeliveryLog, createComplaintUpdate } from '@/lib/supabase/database';
 import { sendComplaintEmail } from '@/lib/email-service';
 
 export async function POST(
@@ -8,7 +8,7 @@ export async function POST(
 ) {
   try {
     const { id } = await params;
-    const complaint = mockStore.getComplaintById(id);
+    const complaint = await getComplaintById(id);
 
     if (!complaint) {
       return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });
@@ -21,7 +21,7 @@ export async function POST(
       );
     }
 
-    const representative = mockStore.getRepresentativeById(complaint.assigned_representative_id);
+    const representative = await getRepresentativeById(complaint.assigned_representative_id);
     if (!representative) {
       return NextResponse.json(
         { error: 'Assigned representative not found' },
@@ -32,9 +32,8 @@ export async function POST(
     const emailResult = await sendComplaintEmail(complaint, representative);
 
     if (emailResult.success) {
-      if (!complaint.delivery_logs) complaint.delivery_logs = [];
-      complaint.delivery_logs.unshift({
-        id: 'del-' + Date.now(),
+      await createDeliveryLog({
+        id: crypto.randomUUID(),
         complaint_id: complaint.id,
         channel: 'EMAIL',
         recipient: representative.email,
@@ -43,9 +42,8 @@ export async function POST(
         sent_at: new Date().toISOString(),
       });
 
-      if (!complaint.updates) complaint.updates = [];
-      complaint.updates.unshift({
-        id: 'upd-' + Date.now(),
+      await createComplaintUpdate({
+        id: crypto.randomUUID(),
         complaint_id: complaint.id,
         status: 'EMAIL_SENT',
         message: `Admin manually re-dispatched email dossier to ${representative.name} (${representative.email}).`,

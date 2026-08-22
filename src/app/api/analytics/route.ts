@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
-import { mockStore } from '@/lib/supabase/mock-store';
+import { getComplaints, getRepresentatives } from '@/lib/supabase/database';
 
 export async function GET() {
   try {
-    const complaints = mockStore.getComplaints();
-    const reps = mockStore.getRepresentatives();
+    const complaints = await getComplaints();
+    const reps = await getRepresentatives();
 
     const totalComplaints = complaints.length;
     const resolvedComplaints = complaints.filter(c => c.status === 'RESOLVED').length;

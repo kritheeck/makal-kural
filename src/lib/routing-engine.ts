@@ -1,5 +1,5 @@
 import { Representative } from '@/types/database';
-import { mockStore } from './supabase/mock-store';
+import { getRepresentatives } from '@/lib/supabase/database';
 
 export interface RoutingResult {
   representative?: Representative;
@@ -8,12 +8,12 @@ export interface RoutingResult {
   routingReason: string;
 }
 
-export function routeComplaintToRepresentative(
+export async function routeComplaintToRepresentative(
   category: string,
   district: string,
   constituency?: string
-): RoutingResult {
-  const reps = mockStore.getRepresentatives();
+): Promise<RoutingResult> {
+  const reps = await getRepresentatives();
 
   if (!district) {
     return {

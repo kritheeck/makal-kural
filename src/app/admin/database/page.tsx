@@ -20,7 +20,6 @@ import {
   Send,
   Lock
 } from 'lucide-react';
-import { mockStore } from '@/lib/supabase/mock-store';
 
 export default function DatabaseViewerPage() {
   const { isTamil } = useLanguage();
@@ -28,10 +27,28 @@ export default function DatabaseViewerPage() {
   const [complaints, setComplaints] = useState<any[]>([]);
   const [representatives, setRepresentatives] = useState<any[]>([]);
   const [copied, setCopied] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [complaintsRes, repsRes] = await Promise.all([
+        fetch('/api/complaints'),
+        fetch('/api/representatives'),
+      ]);
+      const complaintsData = await complaintsRes.json();
+      const repsData = await repsRes.json();
+      setComplaints(complaintsData.data || []);
+      setRepresentatives(repsData.data || []);
+    } catch (e) {
+      console.error('Failed to fetch database data', e);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    setComplaints(mockStore.getComplaints());
-    setRepresentatives(mockStore.getRepresentatives());
+    fetchData();
   }, []);
 
   const handleCopyJson = (data: any) => {
@@ -64,10 +81,7 @@ export default function DatabaseViewerPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              setComplaints(mockStore.getComplaints());
-              setRepresentatives(mockStore.getRepresentatives());
-            }}
+            onClick={fetchData}
             className="text-xs"
           >
             <RefreshCw className="w-3.5 h-3.5 mr-1" />

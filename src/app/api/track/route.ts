@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mockStore } from '@/lib/supabase/mock-store';
+import { getComplaintByReference, getRepresentativeById } from '@/lib/supabase/database';
 import { maskEmail, maskPhone } from '@/lib/utils';
 
 export async function GET(req: NextRequest) {
@@ -11,13 +11,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Reference number is required' }, { status: 400 });
     }
 
-    const complaint = mockStore.getComplaintByReference(ref);
+    const complaint = await getComplaintByReference(ref);
 
     if (!complaint) {
       return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });
     }
 
-    // Strict Privacy Masking for public tracking
+    const assignedRepresentative = complaint.assigned_representative_id
+      ? await getRepresentativeById(complaint.assigned_representative_id)
+      : undefined;
+
     const maskedComplaint = {
       id: complaint.id,
       reference_number: complaint.reference_number,
@@ -31,20 +34,18 @@ export async function GET(req: NextRequest) {
       district: complaint.district,
       city: complaint.city,
       constituency: complaint.constituency,
-      locality: complaint.locality, // general area, no private door number
+      locality: complaint.locality,
       severity: complaint.severity,
       status: complaint.status,
-      assigned_representative: complaint.assigned_representative_id
-        ? mockStore.getRepresentativeById(complaint.assigned_representative_id)
-        : undefined,
-      submitter_masked_name: complaint.is_anonymous 
-        ? 'Anonymous Citizen' 
+      assigned_representative: assignedRepresentative,
+      submitter_masked_name: complaint.is_anonymous
+        ? 'Anonymous Citizen'
         : complaint.submitter_name.charAt(0) + '*** ' + (complaint.submitter_name.split(' ')[1] || ''),
       submitter_masked_email: maskEmail(complaint.submitter_email),
       submitter_masked_phone: maskPhone(complaint.submitter_phone),
       created_at: complaint.created_at,
       updated_at: complaint.updated_at,
-      updates: (complaint.updates || []).filter(u => u.is_public),
+      updates: (complaint.updates || []).filter((u: any) => u.is_public),
     };
 
     return NextResponse.json({ success: true, data: maskedComplaint });

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { mockStore } from '@/lib/supabase/mock-store';
+import { getRepresentatives, getRepresentativeById, createRepresentative } from '@/lib/supabase/database';
 import { Representative } from '@/types/database';
 
 export async function GET(req: NextRequest) {
@@ -9,24 +9,11 @@ export async function GET(req: NextRequest) {
     const verification = searchParams.get('verification');
     const search = searchParams.get('search');
 
-    let reps = mockStore.getRepresentatives();
-
-    if (district && district !== 'all') {
-      reps = reps.filter(r => r.district.toLowerCase() === district.toLowerCase());
-    }
-    if (verification && verification !== 'all') {
-      reps = reps.filter(r => r.verification_status === verification);
-    }
-    if (search) {
-      const q = search.toLowerCase();
-      reps = reps.filter(
-        r =>
-          r.name.toLowerCase().includes(q) ||
-          r.organization.toLowerCase().includes(q) ||
-          r.role.toLowerCase().includes(q) ||
-          r.district.toLowerCase().includes(q)
-      );
-    }
+    const reps = await getRepresentatives({ 
+      district: district ?? undefined, 
+      verification: verification ?? undefined, 
+      search: search ?? undefined 
+    });
 
     return NextResponse.json({ success: true, count: reps.length, data: reps });
   } catch (error: any) {
@@ -60,7 +47,7 @@ export async function POST(req: NextRequest) {
     }
 
     const newRep: Representative = {
-      id: 'rep-' + Date.now(),
+      id: crypto.randomUUID(),
       name,
       role,
       organization,
@@ -79,9 +66,12 @@ export async function POST(req: NextRequest) {
       updated_at: new Date().toISOString(),
     };
 
-    mockStore.addRepresentative(newRep);
+    const saved = await createRepresentative(newRep);
+    if (!saved) {
+      return NextResponse.json({ error: 'Failed to save representative' }, { status: 500 });
+    }
 
-    return NextResponse.json({ success: true, data: newRep });
+    return NextResponse.json({ success: true, data: saved });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
