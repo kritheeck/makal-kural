@@ -3,7 +3,7 @@
 import React, { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/components/providers/language-provider';
-import { Complaint, ComplaintStatus } from '@/types/database';
+import { Complaint, ComplaintStatus, ComplaintAttachment } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -24,7 +24,10 @@ import {
   Lock,
   FileCheck,
   Map,
-  Download
+  Download,
+  FileText,
+  Image as ImageIcon,
+  FileArchive
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -123,8 +126,41 @@ export default function TrackDetailPage({
   };
 
   const currentStepIdx = getStepIndex(complaint.status);
-  const xShareUrl = buildXShareUrl(complaint, complaint.assigned_representative);
-  const xOfficialReplyUrl = buildXOfficialReplyUrl(complaint, complaint.assigned_representative);
+   const xShareUrl = buildXShareUrl(complaint, complaint.assigned_representative);
+   const xOfficialReplyUrl = buildXOfficialReplyUrl(complaint, complaint.assigned_representative);
+
+   const getFileIcon = (mimeType?: string) => {
+     if (!mimeType) return <FileText className="w-4 h-4 text-navy-500" />;
+     if (mimeType.startsWith('image/')) return <ImageIcon className="w-4 h-4 text-emerald-600" />;
+     if (mimeType.includes('pdf')) return <FileText className="w-4 h-4 text-red-500" />;
+     if (mimeType.includes('zip') || mimeType.includes('rar') || mimeType.includes('7z')) return <FileArchive className="w-4 h-4 text-amber-600" />;
+     return <FileText className="w-4 h-4 text-navy-500" />;
+   };
+
+   const formatFileSize = (bytes?: number) => {
+     if (!bytes) return '';
+     const kb = bytes / 1024;
+     const mb = kb / 1024;
+     if (mb >= 1) return `${mb.toFixed(1)} MB`;
+     return `${kb.toFixed(1)} KB`;
+   };
+
+   const handleDownload = async (url: string, fileName: string) => {
+     try {
+       const response = await fetch(url);
+       const blob = await response.blob();
+       const blobUrl = URL.createObjectURL(blob);
+       const link = document.createElement('a');
+       link.href = blobUrl;
+       link.download = fileName;
+       document.body.appendChild(link);
+       link.click();
+       document.body.removeChild(link);
+       URL.revokeObjectURL(blobUrl);
+     } catch {
+       window.open(url, '_blank', 'noopener,noreferrer');
+     }
+   };
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-8">
@@ -304,18 +340,42 @@ export default function TrackDetailPage({
                 </div>
               </div>
 
-              <div className="pt-2">
-                <span className="font-semibold uppercase tracking-wider text-navy-500 block mb-1.5">
-                  {isTamil ? 'இருப்பிட வரைபடம்' : 'Location Map'}
-                </span>
-                <ComplaintMap
-                  latitude={complaint.latitude}
-                  longitude={complaint.longitude}
-                  locality={complaint.locality}
-                  district={complaint.district}
-                  height={280}
-                />
-              </div>
+               <div className="pt-2">
+                 <span className="font-semibold uppercase tracking-wider text-navy-500 block mb-1.5">
+                   {isTamil ? 'இருப்பிட வரைபடம்' : 'Location Map'}
+                 </span>
+                 <ComplaintMap
+                   latitude={complaint.latitude}
+                   longitude={complaint.longitude}
+                   locality={complaint.locality}
+                   district={complaint.district}
+                   height={280}
+                 />
+               </div>
+
+               {complaint.attachments && complaint.attachments.length > 0 && (
+                 <div className="pt-2">
+                   <span className="font-semibold uppercase tracking-wider text-navy-500 block mb-1.5">
+                     {isTamil ? 'ஆதாரங்கள் / இணைப்புகள்' : 'Evidence / Attachments'}
+                   </span>
+                   <div className="flex flex-wrap gap-2">
+                      {complaint.attachments.map((att: ComplaintAttachment) => (
+                        <button
+                          key={att.id}
+                          onClick={() => handleDownload(att.file_url, att.file_name)}
+                          className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-navy-200 bg-white text-xs text-navy-800 hover:bg-navy-50 hover:border-navy-300 transition-colors"
+                        >
+                          {getFileIcon(att.mime_type)}
+                          <div className="flex flex-col items-start">
+                            <span className="font-medium text-navy-900 max-w-[200px] truncate">{att.file_name}</span>
+                            <span className="text-[10px] text-navy-500">{formatFileSize(att.file_size)}</span>
+                          </div>
+                          <Download className="w-3.5 h-3.5 text-navy-400 ml-1" />
+                        </button>
+                      ))}
+                   </div>
+                 </div>
+               )}
             </CardContent>
           </Card>
 

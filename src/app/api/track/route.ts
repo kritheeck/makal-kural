@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getComplaintWithDetails } from '@/lib/supabase/database';
 import { maskEmail, maskPhone } from '@/lib/utils';
+import { ComplaintAttachment } from '@/types/database';
 
 export async function GET(req: NextRequest) {
   try {
@@ -17,6 +18,17 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Complaint not found' }, { status: 404 });
     }
 
+    const attachments: ComplaintAttachment[] = (complaint.attachments || []).map(a => ({
+      id: a.id,
+      complaint_id: a.complaint_id,
+      file_name: a.file_name,
+      storage_path: a.storage_path,
+      file_url: a.file_url,
+      mime_type: a.mime_type,
+      file_size: a.file_size,
+      created_at: a.created_at,
+    }));
+
     const maskedComplaint = {
       id: complaint.id,
       reference_number: complaint.reference_number,
@@ -31,6 +43,8 @@ export async function GET(req: NextRequest) {
       city: complaint.city,
       constituency: complaint.constituency,
       locality: complaint.locality,
+      latitude: complaint.latitude,
+      longitude: complaint.longitude,
       severity: complaint.severity,
       status: complaint.status,
       assigned_representative: complaint.assigned_representative,
@@ -42,6 +56,7 @@ export async function GET(req: NextRequest) {
       created_at: complaint.created_at,
       updated_at: complaint.updated_at,
       updates: (complaint.updates || []).filter((u: any) => u.is_public),
+      attachments,
     };
 
     return NextResponse.json({ success: true, data: maskedComplaint });

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -25,15 +25,67 @@ export function ComplaintMap({
   district?: string;
   height?: number;
 }) {
-  if (!latitude || !longitude) {
+  const [position, setPosition] = useState<[number, number] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (latitude && longitude) {
+      setPosition([latitude, longitude]);
+      return;
+    }
+
+    if (!locality && !district) {
+      setError('No location data available for this complaint.');
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    const query = [locality, district].filter(Boolean).join(', ');
+
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`, {
+      headers: { 'Accept': 'application/json' },
+    })
+      .then(res => res.json())
+      .then((data: any[]) => {
+        if (cancelled) return;
+        if (data && data[0]?.lat && data[0]?.lon) {
+          setPosition([parseFloat(data[0].lat), parseFloat(data[0].lon)]);
+        } else {
+          setError('Location not found on map.');
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setError('Unable to load map location.');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [latitude, longitude, locality, district]);
+
+  if (error) {
     return (
       <div className="rounded-xl border border-navy-200 bg-navy-50 flex items-center justify-center text-xs text-navy-500" style={{ height }}>
-        No location data available for this complaint.
+        {error}
       </div>
     );
   }
 
-  const position: L.LatLngExpression = [latitude, longitude];
+  if (loading || !position) {
+    return (
+      <div className="rounded-xl border border-navy-200 bg-navy-50 flex items-center justify-center text-xs text-navy-500" style={{ height }}>
+        Loading map...
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-xl overflow-hidden border border-navy-200 shadow-sm" style={{ height }}>
