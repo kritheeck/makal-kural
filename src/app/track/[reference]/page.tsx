@@ -7,7 +7,7 @@ import { Complaint, ComplaintStatus } from '@/types/database';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { buildXShareUrl } from '@/lib/x-share-service';
+import { buildXShareUrl, buildXOfficialReplyUrl } from '@/lib/x-share-service';
 import { formatDate } from '@/lib/utils';
 import { ComplaintMap } from '@/components/maps/complaint-map';
 import { exportComplaintPDF, exportComplaintsCSV } from '@/lib/export-service';
@@ -124,6 +124,7 @@ export default function TrackDetailPage({
 
   const currentStepIdx = getStepIndex(complaint.status);
   const xShareUrl = buildXShareUrl(complaint, complaint.assigned_representative);
+  const xOfficialReplyUrl = buildXOfficialReplyUrl(complaint, complaint.assigned_representative);
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12 space-y-8">
@@ -147,55 +148,64 @@ export default function TrackDetailPage({
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => window.print()}
-            className="text-xs"
-          >
-            <Printer className="w-3.5 h-3.5 mr-1" />
-            {t.tracking.downloadReceipt}
-          </Button>
-
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() =>
-              exportComplaintPDF({
-                reference_number: complaint.reference_number,
-                category: complaint.category,
-                subcategory: complaint.subcategory,
-                title: complaint.ai_improved_title || complaint.title,
-                description: complaint.ai_improved_description || complaint.description,
-                locality: complaint.locality,
-                district: complaint.district,
-                state: complaint.state,
-                constituency: complaint.constituency,
-                severity: complaint.severity,
-                status: complaint.status,
-                submitter_name: complaint.submitter_name,
-                submitter_email: complaint.submitter_email,
-                submitter_phone: complaint.submitter_phone,
-                created_at: complaint.created_at,
-                updated_at: complaint.updated_at,
-              })
-            }
-            className="text-xs"
-          >
-            <Download className="w-3.5 h-3.5 mr-1" />
-            PDF
-          </Button>
-
-          <a href={xShareUrl} target="_blank" rel="noreferrer">
-            <Button variant="secondary" size="sm" className="text-xs bg-navy-100 text-navy-900">
-              <Share2 className="w-3.5 h-3.5 mr-1" />
-              {isTamil ? 'X-ல் பகிர்' : 'Share on X'}
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => window.print()}
+              className="text-xs"
+            >
+              <Printer className="w-3.5 h-3.5 mr-1" />
+              {t.tracking.downloadReceipt}
             </Button>
-          </a>
-        </div>
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportComplaintPDF({
+                  reference_number: complaint.reference_number,
+                  category: complaint.category,
+                  subcategory: complaint.subcategory,
+                  title: complaint.ai_improved_title || complaint.title,
+                  description: complaint.ai_improved_description || complaint.description,
+                  locality: complaint.locality,
+                  district: complaint.district,
+                  state: complaint.state,
+                  constituency: complaint.constituency,
+                  severity: complaint.severity,
+                  status: complaint.status,
+                  submitter_name: complaint.submitter_name,
+                  submitter_email: complaint.submitter_email,
+                  submitter_phone: complaint.submitter_phone,
+                  created_at: complaint.created_at,
+                  updated_at: complaint.updated_at,
+                })
+              }
+              className="text-xs"
+            >
+              <Download className="w-3.5 h-3.5 mr-1" />
+              PDF
+            </Button>
+
+            <a href={xShareUrl} target="_blank" rel="noopener noreferrer">
+              <Button variant="secondary" size="sm" className="text-xs bg-navy-100 text-navy-900">
+                <Share2 className="w-3.5 h-3.5 mr-1" />
+                {isTamil ? 'X-ல் பகிர்' : 'Share on X'}
+              </Button>
+            </a>
+
+            {complaint.assigned_representative?.x_handle && (
+              <a href={xOfficialReplyUrl} target="_blank" rel="noopener noreferrer">
+                <Button variant="civic" size="sm" className="text-xs bg-emerald-600 text-white hover:bg-emerald-700">
+                  <Send className="w-3.5 h-3.5 mr-1" />
+                  {isTamil ? 'அதிகாரியை குறிப்பிடுக' : 'Tag Officer'}
+                </Button>
+              </a>
+            )}
+          </div>
       </div>
 
       {/* Visual Timeline Stepper */}

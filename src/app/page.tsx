@@ -69,7 +69,7 @@ export default function LandingPage() {
             <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
               
               {/* Trust Badge */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-navy-200/90 shadow-2xs text-xs font-semibold text-navy-800">
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white border border-navy-200/90 shadow-2xs text-xs font-semibold text-navy-800 animate-in-up">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="font-tamil">
                   {isTamil ? 'தமிழ்நாடு அரசு & மக்கள் பிரதிநிதிகள் இணைப்பு தளம்' : 'Tamil Nadu Citizen Grievance Redressal Network'}
@@ -77,7 +77,7 @@ export default function LandingPage() {
               </div>
 
               {/* Main Headlines */}
-              <div className="space-y-2">
+              <div className="space-y-2 animate-in-up delay-100">
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-navy-950 font-tamil tracking-tight leading-tight">
                   {t.brand.tamilName}
                 </h1>
@@ -86,28 +86,28 @@ export default function LandingPage() {
                 </h2>
               </div>
 
-              <p className="text-sm sm:text-base text-navy-600 leading-relaxed max-w-xl mx-auto lg:mx-0">
+              <p className="text-sm sm:text-base text-navy-600 leading-relaxed max-w-xl mx-auto lg:mx-0 animate-in-up delay-200">
                 {t.hero.subtitle}
               </p>
 
               {/* Hero Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3 pt-2 animate-in-up delay-300">
                 <Link href="/raise-complaint" className="w-full sm:w-auto">
-                  <Button variant="civic" size="lg" className="w-full sm:w-auto font-bold shadow-lg shadow-emerald-700/20 text-sm">
+                  <Button variant="civic" size="lg" className="w-full sm:w-auto font-bold shadow-lg shadow-emerald-700/20 text-sm hover:scale-105 transition-transform">
                     <PlusCircle className="w-5 h-5 mr-2" />
                     {t.hero.raiseBtn}
                   </Button>
                 </Link>
 
                 <Link href="/track" className="w-full sm:w-auto">
-                  <Button variant="primary" size="lg" className="w-full sm:w-auto text-sm font-semibold">
+                  <Button variant="primary" size="lg" className="w-full sm:w-auto text-sm font-semibold hover:scale-105 transition-transform">
                     <Search className="w-4 h-4 mr-2 text-emerald-400" />
                     {t.hero.trackBtn}
                   </Button>
                 </Link>
 
                 <Link href="/representatives" className="w-full sm:w-auto">
-                  <Button variant="outline" size="lg" className="w-full sm:w-auto text-sm font-semibold bg-white">
+                  <Button variant="outline" size="lg" className="w-full sm:w-auto text-sm font-semibold bg-white hover:scale-105 transition-transform">
                     <Building2 className="w-4 h-4 mr-2 text-navy-600" />
                     {t.hero.dirBtn}
                   </Button>
@@ -115,7 +115,7 @@ export default function LandingPage() {
               </div>
 
               {/* Emergency Helpline Disclaimer */}
-              <div className="pt-2">
+              <div className="pt-2 animate-in-up delay-400">
                 <div className="p-3.5 rounded-xl bg-amber-50/90 border border-amber-200 text-xs text-amber-900 flex items-center gap-2.5 max-w-xl mx-auto lg:mx-0">
                   <PhoneCall className="w-4 h-4 text-amber-700 flex-shrink-0" />
                   <span>{t.hero.emergencyDisclaimer}</span>
@@ -168,22 +168,22 @@ export default function LandingPage() {
       {/* 2. LIVE IMPACT METRICS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          <Card className="border-navy-200/80 p-6 text-center space-y-1 shadow-sm">
+          <Card className="border-navy-200/80 p-6 text-center space-y-1 shadow-sm hover-lift transition-all duration-300">
             <div className="text-3xl sm:text-4xl font-extrabold text-navy-950 font-mono">1,480+</div>
             <div className="text-xs font-semibold text-navy-600 font-tamil">{t.stats.complaintsSubmitted}</div>
           </Card>
 
-          <Card className="border-navy-200/80 p-6 text-center space-y-1 shadow-sm">
+          <Card className="border-navy-200/80 p-6 text-center space-y-1 shadow-sm hover-lift transition-all duration-300">
             <div className="text-3xl sm:text-4xl font-extrabold text-emerald-700 font-mono">234</div>
             <div className="text-xs font-semibold text-navy-600 font-tamil">{t.stats.verifiedReps}</div>
           </Card>
 
-          <Card className="border-navy-200/80 p-6 text-center space-y-1 shadow-sm">
+          <Card className="border-navy-200/80 p-6 text-center space-y-1 shadow-sm hover-lift transition-all duration-300">
             <div className="text-3xl sm:text-4xl font-extrabold text-navy-950 font-mono">38 / 38</div>
             <div className="text-xs font-semibold text-navy-600 font-tamil">{t.stats.districtsCovered}</div>
           </Card>
 
-          <Card className="border-navy-200/80 p-6 text-center space-y-1 shadow-sm">
+          <Card className="border-navy-200/80 p-6 text-center space-y-1 shadow-sm hover-lift transition-all duration-300">
             <div className="text-3xl sm:text-4xl font-extrabold text-emerald-700 font-mono">92.4%</div>
             <div className="text-xs font-semibold text-navy-600 font-tamil">{t.stats.resolutionRate}</div>
           </Card>

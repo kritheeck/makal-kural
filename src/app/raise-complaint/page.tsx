@@ -112,7 +112,7 @@ export default function RaiseComplaintPage() {
         errs.description = isTamil ? 'விபரம் குறைந்தது 20 எழுத்துக்கள் இருக்க வேண்டும்' : 'Description must be at least 20 characters';
       }
       if (!dateStarted) errs.dateStarted = 'Please select date';
-    } else if (currentStep === 5) {
+    } else if (currentStep === 6) {
       if (!submitterName.trim()) {
         errs.name = isTamil ? 'பெயர் தேவை' : 'Full name is required';
       }
