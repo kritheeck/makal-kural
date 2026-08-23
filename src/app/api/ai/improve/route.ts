@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { improveComplaint } from '@/lib/ai-assistant-service';
+import { improveComplaintWithAI } from '@/lib/ai-service';
 
 export async function POST(req: NextRequest) {
   try {
@@ -13,18 +13,43 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = improveComplaint(
+    const result = await improveComplaintWithAI({
       title,
       description,
-      category || 'General',
-      locality || 'Locality',
-      district || 'Tamil Nadu',
-      language || 'en'
-    );
+      category: category || 'General',
+      locality: locality || 'Locality',
+      language: language || 'en',
+    });
+
+    if (!result) {
+      const fallback = await import('@/lib/ai-assistant-service').then((m) =>
+        m.improveComplaint(title, description, category || 'General', locality || 'Locality', district || 'Tamil Nadu', language || 'en')
+      );
+      return NextResponse.json({
+        success: true,
+        data: {
+          improvedTitle: fallback.improvedTitle,
+          improvedDescription: fallback.improvedDescription,
+          translatedDescription: fallback.translatedDescription,
+          summaryBullets: fallback.summaryBullets,
+          suggestedSubject: fallback.suggestedSubject,
+          isAbusiveFiltered: fallback.isAbusiveFiltered,
+          aiPowered: false,
+        },
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      data: result,
+      data: {
+        improvedTitle: result.improved_title,
+        improvedDescription: result.improved_description,
+        translatedDescription: result.summary_points.join('\n• '),
+        summaryBullets: result.summary_points,
+        suggestedSubject: `[Makkal Kural] ${result.improved_title}`,
+        isAbusiveFiltered: false,
+        aiPowered: true,
+      },
     });
   } catch (error: any) {
     return NextResponse.json(

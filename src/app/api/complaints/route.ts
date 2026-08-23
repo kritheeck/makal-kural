@@ -4,7 +4,9 @@ import { generateReferenceNumber } from '@/lib/utils';
 import { routeComplaintToRepresentative } from '@/lib/routing-engine';
 import { dispatchComplaintToRepresentative, MultiChannelResult } from '@/lib/delivery-service';
 import { createComplaint, getComplaints, createComplaintAttachment, createDeliveryLog, createComplaintUpdate, uploadAttachment } from '@/lib/supabase/database';
-import { Complaint, DeliveryLog, DeliveryChannel, DeliveryStatus, ComplaintUpdate } from '@/types/database';
+import { Complaint, DeliveryLog, DeliveryChannel, DeliveryStatus, ComplaintUpdate, ComplaintStatus } from '@/types/database';
+import { withRateLimit, applySecurityHeaders } from '@/lib/rate-limit';
+import { createEmailVerification, sendVerificationEmail } from '@/lib/supabase/verification';
 
 export async function GET(req: NextRequest) {
   try {
@@ -21,14 +23,21 @@ export async function GET(req: NextRequest) {
       search: search ?? undefined 
     });
 
-    return NextResponse.json({ success: true, count: complaints.length, data: complaints });
+    const response = NextResponse.json({ success: true, count: complaints.length, data: complaints });
+    return applySecurityHeaders(response);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const response = NextResponse.json({ error: error.message }, { status: 500 });
+    return applySecurityHeaders(response);
   }
 }
 
 export async function POST(req: NextRequest) {
   try {
+    const rateLimitResponse = withRateLimit(req, { max: 5, windowMs: 60_000 });
+    if (rateLimitResponse instanceof NextResponse && rateLimitResponse.status === 429) {
+      return rateLimitResponse;
+    }
+
     const contentType = req.headers.get('content-type') || '';
     let payload: any;
     let files: File[] = [];
@@ -49,14 +58,16 @@ export async function POST(req: NextRequest) {
     const validated = fullComplaintSubmissionSchema.safeParse(payload);
 
     if (!validated.success) {
-      return NextResponse.json(
+      const response = NextResponse.json(
         { error: 'Invalid form submission', details: validated.error.format() },
         { status: 400 }
       );
+      return applySecurityHeaders(response);
     }
 
     const data = validated.data;
     const refNumber = generateReferenceNumber();
+    const complaintId = crypto.randomUUID();
 
     const routing = await routeComplaintToRepresentative(
       data.category,
@@ -65,8 +76,8 @@ export async function POST(req: NextRequest) {
     );
 
     const assignedRep = routing.representative;
-    const complaintId = crypto.randomUUID();
 
+    const now = new Date().toISOString();
     const initialUpdates: ComplaintUpdate[] = [
       {
         id: crypto.randomUUID(),
@@ -74,88 +85,12 @@ export async function POST(req: NextRequest) {
         status: 'SUBMITTED',
         message: 'Complaint submitted by citizen and registered with reference ' + refNumber,
         is_public: true,
-        created_at: new Date().toISOString(),
+        created_at: now,
       },
     ];
 
     const initialDeliveryLogs: DeliveryLog[] = [];
-
-    let finalStatus: any = 'SUBMITTED';
-    let multiChannelResult: MultiChannelResult | null = null;
-
-    if (assignedRep && routing.isVerified) {
-      const newComplaintObj: Complaint = {
-        id: complaintId,
-        reference_number: refNumber,
-        category: data.category,
-        subcategory: data.subcategory,
-        title: data.title,
-        description: data.description,
-        original_language: data.originalLanguage,
-        ai_improved_title: data.aiImprovedTitle,
-        ai_improved_description: data.aiImprovedDescription,
-        translated_description: data.translatedDescription,
-        state: data.state,
-        district: data.district,
-        city: data.city,
-        constituency: data.constituency,
-        locality: data.locality,
-        latitude: data.latitude,
-        longitude: data.longitude,
-        severity: data.severity,
-        status: 'EMAIL_QUEUED',
-        assigned_representative_id: assignedRep.id,
-        assigned_representative: assignedRep,
-        is_anonymous: data.isAnonymous,
-        submitter_name: data.submitterName,
-        submitter_email: data.submitterEmail,
-        submitter_phone: data.submitterPhone,
-        submitter_language: data.submitterLanguage,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-
-      multiChannelResult = await dispatchComplaintToRepresentative(newComplaintObj, assignedRep);
-
-      const emailSuccess = multiChannelResult.results.find(r => r.channel === 'EMAIL');
-      if (emailSuccess && emailSuccess.status === 'SUCCESS') {
-        finalStatus = 'EMAIL_SENT';
-        initialUpdates.unshift({
-          id: crypto.randomUUID(),
-          complaint_id: complaintId,
-          status: 'EMAIL_SENT',
-          message: `Official complaint dossier dispatched to verified authority: ${assignedRep.name} (${assignedRep.organization}).`,
-          is_public: true,
-          created_at: new Date().toISOString(),
-        });
-      } else if (emailSuccess && emailSuccess.status === 'FAILED') {
-        finalStatus = 'EMAIL_FAILED';
-      }
-
-      const channelSummary = multiChannelResult.results.map(r => `${r.channel}: ${r.status}`).join(', ');
-      initialUpdates.unshift({
-        id: crypto.randomUUID(),
-        complaint_id: complaintId,
-        status: emailSuccess?.status === 'SUCCESS' ? 'EMAIL_SENT' : 'EMAIL_FAILED',
-        message: `Multi-channel dispatch completed (${multiChannelResult.overallStatus}). Channels: ${channelSummary}.`,
-        is_public: true,
-        created_at: new Date().toISOString(),
-      });
-
-      for (const result of multiChannelResult.results) {
-        initialDeliveryLogs.push({
-          id: crypto.randomUUID(),
-          complaint_id: complaintId,
-          channel: result.channel as DeliveryChannel,
-          recipient: assignedRep.email,
-          status: result.status as DeliveryStatus,
-          external_message_id: result.externalMessageId,
-          external_url: result.externalUrl,
-          error_message: result.error,
-          sent_at: result.sentAt,
-        });
-      }
-    }
+    let finalStatus: ComplaintStatus = 'SUBMITTED';
 
     const savedComplaint = await createComplaint({
       id: complaintId,
@@ -183,8 +118,8 @@ export async function POST(req: NextRequest) {
       submitter_email: data.submitterEmail,
       submitter_phone: data.submitterPhone,
       submitter_language: data.submitterLanguage,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: now,
+      updated_at: now,
     });
 
     const finalComplaintId = savedComplaint?.id || complaintId;
@@ -210,23 +145,104 @@ export async function POST(req: NextRequest) {
           file_url: upload.url,
           mime_type: file.type,
           file_size: file.size,
-          created_at: new Date().toISOString(),
+          created_at: now,
         });
         if (stored) uploadedAttachments.push(stored);
       }
     }
 
-    return NextResponse.json({
+    if (data.submitterEmail) {
+      Promise.resolve().then(async () => {
+        try {
+          const verification = await createEmailVerification(finalComplaintId, data.submitterEmail);
+          if (verification) {
+            await sendVerificationEmail(data.submitterEmail, verification.token, refNumber);
+          }
+        } catch (err) {
+          console.error('Verification email creation failed', err);
+        }
+      });
+    }
+
+    if (assignedRep && routing.isVerified) {
+      const newComplaintObj: Complaint = {
+        id: finalComplaintId,
+        reference_number: refNumber,
+        category: data.category,
+        subcategory: data.subcategory,
+        title: data.title,
+        description: data.description,
+        original_language: data.originalLanguage,
+        ai_improved_title: data.aiImprovedTitle,
+        ai_improved_description: data.aiImprovedDescription,
+        translated_description: data.translatedDescription,
+        state: data.state,
+        district: data.district,
+        city: data.city,
+        constituency: data.constituency,
+        locality: data.locality,
+        latitude: data.latitude,
+        longitude: data.longitude,
+        severity: data.severity,
+        status: 'EMAIL_QUEUED',
+        assigned_representative_id: assignedRep.id,
+        assigned_representative: assignedRep,
+        is_anonymous: data.isAnonymous,
+        submitter_name: data.submitterName,
+        submitter_email: data.submitterEmail,
+        submitter_phone: data.submitterPhone,
+        submitter_language: data.submitterLanguage,
+        created_at: now,
+        updated_at: now,
+      };
+
+      Promise.resolve().then(async () => {
+        try {
+          const multiChannelResult = await dispatchComplaintToRepresentative(newComplaintObj, assignedRep);
+          const emailSuccess = multiChannelResult.results.find(r => r.channel === 'EMAIL');
+          const updatedStatus = emailSuccess?.status === 'SUCCESS' ? 'EMAIL_SENT' : emailSuccess?.status === 'FAILED' ? 'EMAIL_FAILED' : 'EMAIL_QUEUED';
+
+          await createComplaintUpdate({
+            id: crypto.randomUUID(),
+            complaint_id: finalComplaintId,
+            status: updatedStatus,
+            message: `Multi-channel dispatch completed (${multiChannelResult.overallStatus}).`,
+            is_public: true,
+            created_at: new Date().toISOString(),
+          });
+
+          for (const result of multiChannelResult.results) {
+            await createDeliveryLog({
+              id: crypto.randomUUID(),
+              complaint_id: finalComplaintId,
+              channel: result.channel as DeliveryChannel,
+              recipient: assignedRep.email,
+              status: result.status as DeliveryStatus,
+              external_message_id: result.externalMessageId,
+              external_url: result.externalUrl,
+              error_message: result.error,
+              sent_at: result.sentAt,
+            });
+          }
+        } catch (err) {
+          console.error('Async delivery failed for complaint', finalComplaintId, err);
+        }
+      });
+    }
+
+    const response = NextResponse.json({
       success: true,
       referenceNumber: refNumber,
       complaintId: finalComplaintId,
       assignedRepresentative: assignedRep,
       routingDetails: routing,
       deliveryLogs: initialDeliveryLogs,
-      multiChannelResult,
+      multiChannelResult: null,
       attachments: uploadedAttachments,
     });
+    return applySecurityHeaders(response);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const response = NextResponse.json({ error: error.message }, { status: 500 });
+    return applySecurityHeaders(response);
   }
 }

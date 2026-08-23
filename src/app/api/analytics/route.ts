@@ -1,8 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { getComplaints, getRepresentatives } from '@/lib/supabase/database';
+import { requireAdminAuth, applySecurityHeaders } from '@/lib/admin-auth';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   try {
+    const auth = requireAdminAuth(req);
+    if (!auth.authorized) {
+      return auth.response!;
+    }
+
     const complaints = await getComplaints();
     const reps = await getRepresentatives();
 
@@ -15,29 +21,24 @@ export async function GET() {
       ? Math.round((resolvedComplaints / totalComplaints) * 100) 
       : 0;
 
-    // Category breakdown
     const categoryCounts: Record<string, number> = {};
     complaints.forEach(c => {
       categoryCounts[c.category] = (categoryCounts[c.category] || 0) + 1;
     });
 
-    // District breakdown
     const districtCounts: Record<string, number> = {};
     complaints.forEach(c => {
       districtCounts[c.district] = (districtCounts[c.district] || 0) + 1;
     });
 
-    // Status breakdown
     const statusCounts: Record<string, number> = {};
     complaints.forEach(c => {
       statusCounts[c.status] = (statusCounts[c.status] || 0) + 1;
     });
 
-    // Verification stats
     const verifiedReps = reps.filter(r => r.verification_status === 'VERIFIED').length;
     const reviewReps = reps.filter(r => r.verification_status === 'NEEDS_REVIEW').length;
 
-    // Delivery stats
     let totalEmailsDispatched = 0;
     let successfulEmails = 0;
     complaints.forEach(c => {
@@ -51,9 +52,9 @@ export async function GET() {
 
     const emailDeliveryRate = totalEmailsDispatched > 0
       ? Math.round((successfulEmails / totalEmailsDispatched) * 100)
-      : 98; // healthy baseline
+      : 98;
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       success: true,
       data: {
         totalComplaints,
@@ -69,7 +70,9 @@ export async function GET() {
         emailDeliveryRate,
       },
     });
+    return applySecurityHeaders(response);
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    const response = NextResponse.json({ error: error.message }, { status: 500 });
+    return applySecurityHeaders(response);
   }
 }

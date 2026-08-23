@@ -3,6 +3,7 @@ import { Inter, Noto_Sans_Tamil } from 'next/font/google';
 import './globals.css';
 import { LanguageProvider } from '@/components/providers/language-provider';
 import { AuthProvider } from '@/components/providers/auth-provider';
+import { ThemeProvider } from '@/components/providers/theme-provider';
 import { Navbar } from '@/components/layout/navbar';
 import { Footer } from '@/components/layout/footer';
 
@@ -41,13 +42,15 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${notoSansTamil.variable}`}>
       <body className="min-h-screen flex flex-col font-sans">
         <AuthProvider>
-          <LanguageProvider>
-            <Navbar />
-            <main className="flex-1">
-              {children}
-            </main>
-            <Footer />
-          </LanguageProvider>
+          <ThemeProvider>
+            <LanguageProvider>
+              <Navbar />
+              <main className="flex-1">
+                {children}
+              </main>
+              <Footer />
+            </LanguageProvider>
+          </ThemeProvider>
         </AuthProvider>
       </body>
     </html>

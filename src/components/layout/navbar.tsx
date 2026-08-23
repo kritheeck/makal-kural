@@ -16,9 +16,12 @@ import {
   X, 
   User, 
   Lock,
-  LayoutDashboard
+  LayoutDashboard,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 export function Navbar() {
   const { language, setLanguage, t, isTamil } = useLanguage();
@@ -101,6 +104,9 @@ export function Navbar() {
           {/* Right Action Icons & Controls */}
           <div className="flex items-center gap-2 sm:gap-3">
             
+            {/* Theme Toggle */}
+            <ThemeToggle />
+
             {/* Bilingual Language Switcher Toggle */}
             <button
               onClick={toggleLanguage}

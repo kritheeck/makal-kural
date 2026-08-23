@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { buildXShareUrl } from '@/lib/x-share-service';
 import { formatDate } from '@/lib/utils';
+import { ComplaintMap } from '@/components/maps/complaint-map';
+import { exportComplaintPDF, exportComplaintsCSV } from '@/lib/export-service';
 import { 
   CheckCircle2, 
   Clock, 
@@ -20,7 +22,9 @@ import {
   ArrowLeft, 
   ExternalLink,
   Lock,
-  FileCheck
+  FileCheck,
+  Map,
+  Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -155,6 +159,36 @@ export default function TrackDetailPage({
             {t.tracking.downloadReceipt}
           </Button>
 
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              exportComplaintPDF({
+                reference_number: complaint.reference_number,
+                category: complaint.category,
+                subcategory: complaint.subcategory,
+                title: complaint.ai_improved_title || complaint.title,
+                description: complaint.ai_improved_description || complaint.description,
+                locality: complaint.locality,
+                district: complaint.district,
+                state: complaint.state,
+                constituency: complaint.constituency,
+                severity: complaint.severity,
+                status: complaint.status,
+                submitter_name: complaint.submitter_name,
+                submitter_email: complaint.submitter_email,
+                submitter_phone: complaint.submitter_phone,
+                created_at: complaint.created_at,
+                updated_at: complaint.updated_at,
+              })
+            }
+            className="text-xs"
+          >
+            <Download className="w-3.5 h-3.5 mr-1" />
+            PDF
+          </Button>
+
           <a href={xShareUrl} target="_blank" rel="noreferrer">
             <Button variant="secondary" size="sm" className="text-xs bg-navy-100 text-navy-900">
               <Share2 className="w-3.5 h-3.5 mr-1" />
@@ -258,6 +292,19 @@ export default function TrackDetailPage({
                     {complaint.constituency || 'All Constituencies'}
                   </span>
                 </div>
+              </div>
+
+              <div className="pt-2">
+                <span className="font-semibold uppercase tracking-wider text-navy-500 block mb-1.5">
+                  {isTamil ? 'இருப்பிட வரைபடம்' : 'Location Map'}
+                </span>
+                <ComplaintMap
+                  latitude={complaint.latitude}
+                  longitude={complaint.longitude}
+                  locality={complaint.locality}
+                  district={complaint.district}
+                  height={280}
+                />
               </div>
             </CardContent>
           </Card>

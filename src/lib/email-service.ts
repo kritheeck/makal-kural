@@ -141,3 +141,47 @@ export async function sendComplaintEmail(
     messageId: `sim_msg_${Date.now()}_${Math.random().toString(36).substring(7)}`,
   };
 }
+
+export interface StatusUpdateEmailParams {
+  to: string;
+  subject: string;
+  html: string;
+}
+
+export async function sendStatusUpdateEmail(params: StatusUpdateEmailParams): Promise<EmailSendResult> {
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.EMAIL_FROM || 'Makkal Kural <noreply@makkalkural.org>';
+
+  if (!resendApiKey) {
+    console.warn('RESEND_API_KEY not configured. Status notification email skipped.');
+    return { success: true, messageId: `sim_status_${Date.now()}` };
+  }
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${resendApiKey}`,
+      },
+      body: JSON.stringify({
+        from: fromEmail,
+        to: params.to,
+        subject: params.subject,
+        html: params.html,
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      return { success: true, messageId: data.id };
+    } else {
+      const errText = await res.text();
+      console.error('Status email send failed', res.status, errText);
+      return { success: false, error: `Resend API error: ${res.status}` };
+    }
+  } catch (err: any) {
+    console.error('Status notification email failed', err);
+    return { success: false, error: err.message || 'Failed to send status email' };
+  }
+}
