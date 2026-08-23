@@ -6,7 +6,7 @@ import { dispatchComplaintToRepresentative, MultiChannelResult } from '@/lib/del
 import { createComplaint, getComplaints, createComplaintAttachment, createDeliveryLog, createComplaintUpdate, uploadAttachment } from '@/lib/supabase/database';
 import { Complaint, DeliveryLog, DeliveryChannel, DeliveryStatus, ComplaintUpdate, ComplaintStatus } from '@/types/database';
 import { withRateLimit, applySecurityHeaders } from '@/lib/rate-limit';
-import { createEmailVerification, sendVerificationEmail } from '@/lib/supabase/verification';
+import { createEmailVerification, sendVerificationEmail, sendComplaintConfirmationEmail } from '@/lib/supabase/verification';
 
 export async function GET(req: NextRequest) {
   try {
@@ -152,6 +152,20 @@ export async function POST(req: NextRequest) {
     }
 
     if (data.submitterEmail) {
+      Promise.resolve().then(async () => {
+        try {
+          await sendComplaintConfirmationEmail(
+            data.submitterEmail,
+            refNumber,
+            data.title,
+            data.district,
+            'SUBMITTED'
+          );
+        } catch (err) {
+          console.error('Confirmation email failed', err);
+        }
+      });
+
       Promise.resolve().then(async () => {
         try {
           const verification = await createEmailVerification(finalComplaintId, data.submitterEmail);

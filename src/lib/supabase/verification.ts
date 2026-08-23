@@ -60,6 +60,62 @@ export async function getVerificationByComplaint(
   return data;
 }
 
+export async function sendComplaintConfirmationEmail(
+  email: string,
+  referenceNumber: string,
+  title: string,
+  district: string,
+  status: string = 'SUBMITTED'
+): Promise<void> {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  const subject = `[Makkal Kural] Your complaint ${referenceNumber} has been registered`;
+  const html = `
+    <div style="font-family: Arial, sans-serif; color: #0f172a; max-width: 650px; margin: 0 auto;">
+      <div style="background: #0b132b; color: #ffffff; padding: 24px; border-radius: 8px 8px 0 0;">
+        <h2 style="margin: 0; font-size: 20px;">மக்கள் குரல் — Makkal Kural</h2>
+        <p style="margin: 4px 0 0 0; font-size: 13px; color: #cbd5e1;">Citizen Grievance Routing & Tracking Portal</p>
+      </div>
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 0 0 8px 8px; padding: 24px;">
+        <p>Your complaint has been <strong>successfully registered</strong>.</p>
+        <div style="background: #f8fafc; border-left: 4px solid #3b82f6; padding: 16px; margin: 16px 0; border-radius: 0 6px 6px 0;">
+          <div style="margin-bottom: 8px;"><strong>Reference Number:</strong> <span style="font-family: monospace; font-size: 16px; color: #0b132b;">${referenceNumber}</span></div>
+          <div style="margin-bottom: 8px;"><strong>Title:</strong> ${title}</div>
+          <div style="margin-bottom: 8px;"><strong>District:</strong> ${district}</div>
+          <div style="margin-bottom: 8px;"><strong>Status:</strong> ${status}</div>
+        </div>
+        <p>Track your complaint online: <a href="${appUrl}/track/${referenceNumber}" style="color: #0b132b; font-weight: 600;">${appUrl}/track/${referenceNumber}</a></p>
+        <p style="font-size: 12px; color: #64748b;">If you did not submit this complaint, please ignore this email.</p>
+      </div>
+    </div>
+  `;
+
+  const resendApiKey = process.env.RESEND_API_KEY;
+  const fromEmail = process.env.EMAIL_FROM || 'Makkal Kural <noreply@makkalkural.org>';
+
+  if (!resendApiKey) {
+    console.warn('RESEND_API_KEY not configured. Complaint confirmation email skipped.');
+    return;
+  }
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${resendApiKey}`,
+      },
+      body: JSON.stringify({ from: fromEmail, to: email, subject, html }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error('Confirmation email send failed', res.status, errText);
+    }
+  } catch (err) {
+    console.error('Confirmation email error', err);
+  }
+}
+
 export async function sendVerificationEmail(email: string, token: string, referenceNumber: string): Promise<void> {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
   const subject = `[Makkal Kural] Verify your email for complaint ${referenceNumber}`;
