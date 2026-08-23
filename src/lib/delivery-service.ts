@@ -228,25 +228,48 @@ async function dispatchEmail(complaint: Complaint, recipient: Representative) {
 
 async function dispatchX(complaint: Complaint, recipient: Representative) {
   const xClientId = process.env.X_CLIENT_ID;
+  const xClientSecret = process.env.X_CLIENT_SECRET;
+  const xUserAccessToken = process.env.X_USER_ACCESS_TOKEN;
   const xHandle = recipient.x_handle;
 
   if (!xHandle) {
     return { success: false, error: 'No X handle configured for recipient' };
   }
 
-  if (xClientId && !xClientId.includes('your_')) {
+  const message = `[Makkal Kural] New grievance #${complaint.reference_number} from ${complaint.locality}, ${complaint.district}. Category: ${complaint.category}. Severity: ${complaint.severity}. Please take immediate action.`;
+  const deepLink = `https://x.com/message/compose?recipient_id=${encodeURIComponent(xHandle)}&text=${encodeURIComponent(message)}`;
+
+  if (xUserAccessToken && !xUserAccessToken.includes('your_')) {
     try {
-      const message = `[Makkal Kural] New grievance #${complaint.reference_number} from ${complaint.locality}, ${complaint.district}. Category: ${complaint.category}. Severity: ${complaint.severity}. Please take immediate action.`;
-      const deepLink = `https://x.com/message/compose?recipient_id=${encodeURIComponent(xHandle)}&text=${encodeURIComponent(message)}`;
-      return { success: true, url: deepLink };
+      const tweetText = `@${xHandle} ${message} Track: ${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/track/${complaint.reference_number}`;
+      const res = await fetch('https://api.twitter.com/2/tweets', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${xUserAccessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ text: tweetText }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.data?.id) {
+        const tweetUrl = `https://x.com/i/status/${data.data.id}`;
+        return { success: true, url: tweetUrl };
+      } else {
+        return { success: false, error: data.error?.message || 'X API error', url: deepLink };
+      }
     } catch (err: any) {
-      return { success: false, error: err.message || 'Failed to prepare X DM' };
+      return { success: false, error: err.message || 'Failed to post X tweet', url: deepLink };
     }
+  }
+
+  if (xClientId && !xClientId.includes('your_')) {
+    return { success: true, url: deepLink };
   }
 
   return {
     success: true,
-    url: `https://x.com/message/compose?recipient_id=${encodeURIComponent(xHandle)}&text=${encodeURIComponent(`[Makkal Kural] New grievance #${complaint.reference_number} from ${complaint.locality}, ${complaint.district}. Category: ${complaint.category}. Severity: ${complaint.severity}.`)}`,
+    url: deepLink,
   };
 }
 
