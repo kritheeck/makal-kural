@@ -109,7 +109,18 @@ export async function sendComplaintConfirmationEmail(
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error('Confirmation email send failed', res.status, errText);
+      if (res.status === 403 || errText.includes('not verified')) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${resendApiKey}`,
+          },
+          body: JSON.stringify({ from: 'Makkal Kural <onboarding@resend.dev>', to: email, subject, html }),
+        });
+      } else {
+        console.error('Confirmation email send failed', res.status, errText);
+      }
     }
   } catch (err) {
     console.error('Confirmation email error', err);
@@ -148,7 +159,18 @@ export async function sendVerificationEmail(email: string, token: string, refere
 
     if (!res.ok) {
       const errText = await res.text();
-      console.error('Verification email send failed', res.status, errText);
+      if (res.status === 403 || errText.includes('not verified')) {
+        await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${resendApiKey}`,
+          },
+          body: JSON.stringify({ from: 'Makkal Kural <onboarding@resend.dev>', to: email, subject, html }),
+        });
+      } else {
+        console.error('Verification email send failed', res.status, errText);
+      }
     }
   } catch (err) {
     console.error('Verification email error', err);

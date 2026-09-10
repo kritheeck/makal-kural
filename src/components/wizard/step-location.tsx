@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { TAMIL_NADU_DISTRICTS } from '@/lib/constants/locations';
+import React, { useState, useEffect } from 'react';
+import { TAMIL_NADU_DISTRICTS, getDistrictCoordinates } from '@/lib/constants/locations';
 import { useLanguage } from '@/components/providers/language-provider';
 import { Select } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
@@ -39,6 +39,14 @@ export function StepLocation({
   const { isTamil } = useLanguage();
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsMsg, setGpsMsg] = useState<string | null>(null);
+
+  // If district is selected but coordinates are empty, auto-populate from district coordinates
+  useEffect(() => {
+    if (district && (latitude === undefined || longitude === undefined || latitude === 0)) {
+      const coords = getDistrictCoordinates(district);
+      onChange({ latitude: coords.lat, longitude: coords.lng });
+    }
+  }, [district, latitude, longitude, onChange]);
 
   const selectedDistrictData = TAMIL_NADU_DISTRICTS.find(
     d => d.nameEn.toLowerCase() === district.toLowerCase()
@@ -104,9 +112,13 @@ export function StepLocation({
             onChange={(e) => {
               const newDist = e.target.value;
               const distData = TAMIL_NADU_DISTRICTS.find(d => d.nameEn === newDist);
+              const coords = getDistrictCoordinates(newDist);
               onChange({
                 district: newDist,
                 constituency: distData?.constituenciesEn[0] || '',
+                latitude: coords.lat,
+                longitude: coords.lng,
+                city: city || newDist,
               });
             }}
           >

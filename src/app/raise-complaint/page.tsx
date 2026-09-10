@@ -193,6 +193,66 @@ export default function RaiseComplaintPage() {
 
       const json = await res.json();
       if (res.ok && json.success) {
+        try {
+          const newComplaintObj = {
+            id: json.complaintId,
+            reference_number: json.referenceNumber,
+            category,
+            subcategory,
+            state: 'Tamil Nadu',
+            district,
+            city,
+            constituency,
+            locality,
+            latitude,
+            longitude,
+            title,
+            description,
+            ai_improved_title: aiTitle,
+            ai_improved_description: aiDescription,
+            translated_description: translatedDescription,
+            severity,
+            status: 'SUBMITTED',
+            assigned_representative: json.assignedRepresentative,
+            assigned_representative_id: json.assignedRepresentative?.id,
+            submitter_name: submitterName,
+            submitter_email: submitterEmail,
+            submitter_phone: submitterPhone,
+            is_anonymous: isAnonymous,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            updates: [
+              {
+                id: 'upd-init-' + Date.now(),
+                complaint_id: json.complaintId,
+                status: 'SUBMITTED',
+                message: 'Grievance submitted by citizen and logged in civic registry.',
+                is_public: true,
+                created_at: new Date().toISOString(),
+              },
+            ],
+            delivery_logs: json.deliveryLogs || [],
+            attachments: attachments.map((a, i) => ({
+              id: `att-${i}-${Date.now()}`,
+              complaint_id: json.complaintId,
+              file_name: a.fileName,
+              storage_path: `${json.complaintId}/${a.fileName}`,
+              file_url: a.fileUrl,
+              mime_type: a.mimeType,
+              file_size: a.fileSize,
+              created_at: new Date().toISOString(),
+            })),
+          };
+
+          const existingStored = JSON.parse(localStorage.getItem('mk_complaints') || '[]');
+          localStorage.setItem('mk_complaints', JSON.stringify([newComplaintObj, ...existingStored]));
+
+          const userStored = JSON.parse(localStorage.getItem('mk_user_complaints') || '[]');
+          localStorage.setItem('mk_user_complaints', JSON.stringify([newComplaintObj, ...userStored]));
+        } catch (storageErr) {
+          console.error('Failed to cache complaint in localStorage', storageErr);
+        }
+
         setSubmitSuccess({
           referenceNumber: json.referenceNumber,
           complaintId: json.complaintId,

@@ -99,3 +99,17 @@ ON audit_logs FOR SELECT USING (is_admin());
 
 CREATE POLICY "Audit logs are insertable by admins or server" 
 ON audit_logs FOR INSERT WITH CHECK (is_admin() OR true);
+
+-- 8. Storage Bucket and Policies for Evidence
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('evidence', 'evidence', true)
+ON CONFLICT (id) DO UPDATE SET public = true;
+
+CREATE POLICY "Public Select Evidence" ON storage.objects
+FOR SELECT USING (bucket_id = 'evidence');
+
+CREATE POLICY "Public Insert Evidence" ON storage.objects
+FOR INSERT WITH CHECK (bucket_id = 'evidence');
+
+CREATE POLICY "Public Update Evidence" ON storage.objects
+FOR UPDATE USING (bucket_id = 'evidence');

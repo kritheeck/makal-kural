@@ -3,14 +3,15 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/components/providers/language-provider';
+import { useAuth } from '@/components/providers/auth-provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { signUpWithPassword } from '@/lib/supabase/auth';
 
 export default function RegisterPage() {
   const router = useRouter();
   const { t, isTamil } = useLanguage();
+  const { register } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -21,13 +22,14 @@ export default function RegisterPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await signUpWithPassword(email, password, name);
-    setLoading(false);
-    if (error) {
-      setError(isTamil ? 'பதிவு தோல்வி' : 'Registration failed. Please try again.');
-      return;
+    try {
+      await register(email, password, name);
+      setLoading(false);
+      router.push('/dashboard');
+    } catch (err: any) {
+      setLoading(false);
+      setError(err?.message || (isTamil ? 'பதிவு தோல்வி' : 'Registration failed. Please try again.'));
     }
-    router.push('/dashboard');
   };
 
   return (

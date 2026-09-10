@@ -24,6 +24,7 @@ import {
   X
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
+import { getAdminHeaders } from '@/lib/admin-auth';
 
 export default function AdminRepresentativesPage() {
   const { t, isTamil, language } = useLanguage();
@@ -71,7 +72,10 @@ export default function AdminRepresentativesPage() {
     try {
       const res = await fetch('/api/representatives', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAdminHeaders(),
+        },
         body: JSON.stringify({
           name,
           role,

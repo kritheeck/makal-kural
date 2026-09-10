@@ -15,6 +15,7 @@ import {
   Building2,
   FileText
 } from 'lucide-react';
+import { getAdminHeaders } from '@/lib/admin-auth';
 
 export default function AdminAnalyticsPage() {
   const { t, isTamil } = useLanguage();
@@ -24,7 +25,7 @@ export default function AdminAnalyticsPage() {
   const loadAnalytics = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/analytics');
+      const res = await fetch('/api/analytics', { headers: getAdminHeaders() });
       const json = await res.json();
       if (json.success) setStats(json.data);
     } catch {

@@ -128,6 +128,23 @@ export async function sendComplaintEmail(
       const data = await res.json();
       if (res.ok) {
         return { success: true, messageId: data.id };
+      } else if (data.message?.includes('not verified') || res.status === 403) {
+        const retryRes = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${resendApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            from: 'Makkal Kural <onboarding@resend.dev>',
+            to: [recipient.email],
+            subject,
+            html: htmlBody,
+          }),
+        });
+        const retryData = await retryRes.json();
+        if (retryRes.ok) return { success: true, messageId: retryData.id };
+        return { success: false, error: retryData.message || data.message };
       } else {
         return { success: false, error: data.message || 'Resend API error' };
       }

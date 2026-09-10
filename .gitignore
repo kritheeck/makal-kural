@@ -102,3 +102,9 @@ openspec/
 *.sqlite-shm
 *.sqlite-wal
 *.db
+
+# Temporary test and exploration scripts
+list-ministers*.js
+validate-*.js
+seed-demo.ts
+ponytail/

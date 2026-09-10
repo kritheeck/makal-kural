@@ -26,6 +26,7 @@ import {
   Eye
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
+import { getAdminHeaders } from '@/lib/admin-auth';
 
 export default function AdminComplaintsPage() {
   const { t, isTamil, language } = useLanguage();
@@ -103,7 +104,10 @@ export default function AdminComplaintsPage() {
     try {
       const res = await fetch(`/api/complaints/${selectedComplaint.id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...getAdminHeaders(),
+        },
         body: JSON.stringify({
           status: newStatus,
           publicMessage: publicMessage.trim() || undefined,
@@ -130,6 +134,7 @@ export default function AdminComplaintsPage() {
     try {
       const res = await fetch(`/api/complaints/${complaintId}/email`, {
         method: 'POST',
+        headers: getAdminHeaders(),
       });
       const json = await res.json();
       if (res.ok && json.success) {

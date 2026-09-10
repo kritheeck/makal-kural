@@ -3,14 +3,15 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLanguage } from '@/components/providers/language-provider';
+import { useAuth } from '@/components/providers/auth-provider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { signInWithPassword, signUpWithPassword } from '@/lib/supabase/auth';
 
 export default function LoginPage() {
   const router = useRouter();
   const { t, isTamil } = useLanguage();
+  const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -20,13 +21,14 @@ export default function LoginPage() {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error } = await signInWithPassword(email, password);
-    setLoading(false);
-    if (error) {
-      setError(isTamil ? 'உள்நுழைவு தோல்வி' : 'Login failed. Please check your credentials.');
-      return;
+    try {
+      await login(email, password);
+      setLoading(false);
+      router.push('/dashboard');
+    } catch (err: any) {
+      setLoading(false);
+      setError(err?.message || (isTamil ? 'உள்நுழைவு தோல்வி' : 'Login failed. Please check your credentials.'));
     }
-    router.push('/dashboard');
   };
 
   return (

@@ -1444,6 +1444,8 @@ export const INITIAL_COMPLAINTS: Complaint[] = [
     city: 'Chennai',
     constituency: 'Thousand Lights',
     locality: 'Anna Salai Service Lane, Near Thousand Lights Mosque',
+    latitude: 13.0569,
+    longitude: 80.2525,
     severity: 'HIGH',
     status: 'IN_PROGRESS',
     assigned_representative_id: 'rep-gcc-01',
@@ -1505,6 +1507,8 @@ export const INITIAL_COMPLAINTS: Complaint[] = [
     city: 'Coimbatore',
     constituency: 'Coimbatore North',
     locality: 'Cross Cut Road, Gandhipuram',
+    latitude: 11.0183,
+    longitude: 76.9644,
     severity: 'HIGH',
     status: 'RESOLVED',
     assigned_representative_id: 'rep-ccmc-01',
@@ -1547,8 +1551,10 @@ export const INITIAL_COMPLAINTS: Complaint[] = [
     city: 'Madurai',
     constituency: 'Madurai Central',
     locality: 'Simmakkal North Street',
+    latitude: 9.9272,
+    longitude: 78.1215,
     severity: 'URGENT',
-    status: 'ACTION_TAKEN' as any,
+    status: 'IN_PROGRESS',
     assigned_representative_id: 'rep-madurai-01',
     is_anonymous: false,
     submitter_name: 'Meenakshi Sundaram',
@@ -1570,7 +1576,7 @@ export const INITIAL_COMPLAINTS: Complaint[] = [
         id: 'upd-302',
         complaint_id: 'complaint-sample-03',
         status: 'IN_PROGRESS',
-        message: 'Emergency lineman crew dispatched to secure and tighten the line.',
+        message: 'TANGEDCO line crew on site to tension and secure overhead cables.',
         is_public: true,
         created_at: '2026-08-17T13:45:00Z',
       }
@@ -1584,21 +1590,37 @@ class MockDataStore {
   private representatives: Representative[] = [...INITIAL_REPRESENTATIVES];
 
   constructor() {
+    this.reloadFromStorage();
+  }
+
+  public reloadFromStorage() {
     if (typeof window !== 'undefined') {
       const storedComplaints = localStorage.getItem('mk_complaints');
       if (storedComplaints) {
         try {
-          this.complaints = JSON.parse(storedComplaints);
+          const parsed = JSON.parse(storedComplaints);
+          if (Array.isArray(parsed)) {
+            const existingIds = new Set(parsed.map((c: any) => c.reference_number?.toUpperCase() || c.id));
+            const missingDefaults = INITIAL_COMPLAINTS.filter(
+              c => !existingIds.has(c.reference_number?.toUpperCase()) && !existingIds.has(c.id)
+            );
+            this.complaints = [...parsed, ...missingDefaults];
+          }
         } catch {
-          // fallback to defaults
+          this.complaints = [...INITIAL_COMPLAINTS];
         }
       }
       const storedReps = localStorage.getItem('mk_representatives');
       if (storedReps) {
         try {
-          this.representatives = JSON.parse(storedReps);
+          const parsed = JSON.parse(storedReps);
+          if (Array.isArray(parsed)) {
+            const existingIds = new Set(parsed.map((r: any) => r.id));
+            const missingDefaults = INITIAL_REPRESENTATIVES.filter(r => !existingIds.has(r.id));
+            this.representatives = [...parsed, ...missingDefaults];
+          }
         } catch {
-          // fallback to defaults
+          this.representatives = [...INITIAL_REPRESENTATIVES];
         }
       }
     }

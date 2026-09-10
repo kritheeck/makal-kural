@@ -313,3 +313,58 @@ export const TAMIL_NADU_DISTRICTS: DistrictData[] = [
     constituenciesTa: ['மயிலாடுதுறை', 'சீர்காழி', 'பூம்புகார்'],
   },
 ];
+
+export const TAMIL_NADU_DISTRICT_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  'chennai': { lat: 13.0827, lng: 80.2707 },
+  'coimbatore': { lat: 11.0168, lng: 76.9558 },
+  'madurai': { lat: 9.9252, lng: 78.1198 },
+  'tiruchirappalli': { lat: 10.7905, lng: 78.7047 },
+  'trichy': { lat: 10.7905, lng: 78.7047 },
+  'salem': { lat: 11.6643, lng: 78.1460 },
+  'tirunelveli': { lat: 8.7139, lng: 77.7567 },
+  'tiruppur': { lat: 11.1085, lng: 77.3411 },
+  'erode': { lat: 11.3410, lng: 77.7172 },
+  'vellore': { lat: 12.9165, lng: 79.1325 },
+  'thanjavur': { lat: 10.7870, lng: 79.1378 },
+  'dindigul': { lat: 10.3673, lng: 77.9803 },
+  'kanchipuram': { lat: 12.8342, lng: 79.7036 },
+  'tiruvallur': { lat: 13.1432, lng: 79.9079 },
+  'cuddalore': { lat: 11.7480, lng: 79.7714 },
+  'nagapattinam': { lat: 10.7656, lng: 79.8424 },
+  'thiruvarur': { lat: 10.7725, lng: 79.6365 },
+  'mayiladuthurai': { lat: 11.1075, lng: 79.6524 },
+  'pudukkottai': { lat: 10.3833, lng: 78.8001 },
+  'sivaganga': { lat: 9.8433, lng: 78.4809 },
+  'ramanathapuram': { lat: 9.3639, lng: 78.8395 },
+  'virudhunagar': { lat: 9.5680, lng: 77.9624 },
+  'theni': { lat: 10.0104, lng: 77.4768 },
+  'tenkasi': { lat: 8.9594, lng: 77.3150 },
+  'kanniyakumari': { lat: 8.0883, lng: 77.5385 },
+  'thoothukudi': { lat: 8.7642, lng: 78.1348 },
+  'tuticorin': { lat: 8.7642, lng: 78.1348 },
+  'namakkal': { lat: 11.2189, lng: 78.1674 },
+  'karur': { lat: 10.9601, lng: 78.0766 },
+  'nilgiris': { lat: 11.4102, lng: 76.6950 },
+  'ooty': { lat: 11.4102, lng: 76.6950 },
+  'dharmapuri': { lat: 12.1211, lng: 78.1582 },
+  'krishnagiri': { lat: 12.5186, lng: 78.2137 },
+  'tirupathur': { lat: 12.4962, lng: 78.5663 },
+  'ranipet': { lat: 12.9272, lng: 79.3330 },
+  'tiruvannamalai': { lat: 12.2253, lng: 79.0747 },
+  'villupuram': { lat: 11.9401, lng: 79.4861 },
+  'kallakurichi': { lat: 11.7383, lng: 78.9639 },
+  'perambalur': { lat: 11.2342, lng: 78.8820 },
+  'ariyalur': { lat: 11.1401, lng: 79.0786 },
+  'chengalpattu': { lat: 12.6841, lng: 79.9836 },
+};
+
+export function getDistrictCoordinates(districtName?: string): { lat: number; lng: number } {
+  if (!districtName) return { lat: 13.0827, lng: 80.2707 }; // Default to Chennai, Tamil Nadu
+  const key = districtName.toLowerCase().replace(/[^a-z]/g, '');
+  for (const [dist, coords] of Object.entries(TAMIL_NADU_DISTRICT_COORDINATES)) {
+    if (key.includes(dist) || dist.includes(key)) {
+      return coords;
+    }
+  }
+  return { lat: 13.0827, lng: 80.2707 };
+}

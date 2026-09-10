@@ -21,6 +21,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { formatDate } from '@/lib/utils';
+import { getAdminHeaders } from '@/lib/admin-auth';
 
 export default function AdminOverviewPage() {
   const { t, isTamil, language } = useLanguage();
@@ -33,7 +34,7 @@ export default function AdminOverviewPage() {
     setLoading(true);
     try {
       const [resStats, resComplaints] = await Promise.all([
-        fetch('/api/analytics'),
+        fetch('/api/analytics', { headers: getAdminHeaders() }),
         fetch('/api/complaints'),
       ]);
 

@@ -45,20 +45,62 @@ export default function TrackDetailPage({
   useEffect(() => {
     async function fetchComplaint() {
       setLoading(true);
+      setError(null);
+
+      // 1. Try server API
       try {
         const res = await fetch(`/api/track?ref=${encodeURIComponent(reference)}`);
         const json = await res.json();
-        if (res.ok && json.success) {
+        if (res.ok && json.success && json.data) {
           setComplaint(json.data);
-        } else {
-          setError(json.error || 'Complaint not found');
+          setLoading(false);
+          return;
         }
-      } catch (err: any) {
-        setError(err.message || 'Failed to load complaint');
-      } finally {
-        setLoading(false);
+      } catch {
+        // Continue to local fallbacks
       }
+
+      // 2. Client-side localStorage fallback (for instant persistence in demo/serverless)
+      if (typeof window !== 'undefined') {
+        try {
+          const stored = localStorage.getItem('mk_complaints');
+          if (stored) {
+            const list = JSON.parse(stored);
+            const found = list.find((c: any) =>
+              c.reference_number?.toUpperCase() === reference.trim().toUpperCase() ||
+              c.id === reference.trim()
+            );
+            if (found) {
+              setComplaint(found);
+              setLoading(false);
+              return;
+            }
+          }
+        } catch {
+          // Ignore parse errors
+        }
+      }
+
+      // 3. Built-in initial grievance showcase fallback (for demo resolutions)
+      try {
+        const { INITIAL_COMPLAINTS } = await import('@/lib/supabase/mock-store');
+        const fallbackMatch = INITIAL_COMPLAINTS.find((c: any) =>
+          c.reference_number?.toUpperCase() === reference.trim().toUpperCase() ||
+          c.id === reference.trim()
+        );
+        if (fallbackMatch) {
+          setComplaint(fallbackMatch);
+          setLoading(false);
+          return;
+        }
+      } catch {
+        // Ignore
+      }
+
+      setError('Complaint not found');
+      setLoading(false);
     }
+
     fetchComplaint();
   }, [reference]);
 
