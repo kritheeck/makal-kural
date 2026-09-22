@@ -12,7 +12,7 @@ export async function improveComplaintWithAI(params: {
   locality: string;
   language: 'en' | 'ta';
 }): Promise<AiImprovementResult | null> {
-  const apiKey = process.env.NEXT_PUBLIC_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || apiKey.includes('your_')) return null;
 
   try {

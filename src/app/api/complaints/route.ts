@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fullComplaintSubmissionSchema } from '@/lib/validation';
-import { generateReferenceNumber } from '@/lib/utils';
+import { generateReferenceNumber, maskEmail, maskPhone } from '@/lib/utils';
 import { routeComplaintToRepresentative } from '@/lib/routing-engine';
 import { dispatchComplaintToRepresentative, MultiChannelResult } from '@/lib/delivery-service';
 import { createComplaint, getComplaints, createComplaintAttachment, createDeliveryLog, createComplaintUpdate, uploadAttachment } from '@/lib/supabase/database';
@@ -16,6 +16,13 @@ export async function GET(req: NextRequest) {
     const status = searchParams.get('status');
     const search = searchParams.get('search');
 
+    // Check for admin access — only admins get full PII
+    const authHeader = req.headers.get('authorization');
+    const xAdminKey = req.headers.get('x-admin-key');
+    const adminKey = authHeader?.replace('Bearer ', '').trim() || xAdminKey?.trim();
+    const expectedAdminKey = process.env.ADMIN_SECRET_KEY || 'makkal_kural_admin_2026';
+    const isAdmin = adminKey === expectedAdminKey;
+
     const complaints = await getComplaints({ 
       district: district ?? undefined, 
       category: category ?? undefined, 
@@ -23,7 +30,15 @@ export async function GET(req: NextRequest) {
       search: search ?? undefined 
     });
 
-    const response = NextResponse.json({ success: true, count: complaints.length, data: complaints });
+    // Mask PII for non-admin requests (public API)
+    const safeComplaints = isAdmin ? complaints : complaints.map((c: any) => ({
+      ...c,
+      submitter_name: c.submitter_name ? c.submitter_name.charAt(0) + '***' : undefined,
+      submitter_email: c.submitter_email ? maskEmail(c.submitter_email) : undefined,
+      submitter_phone: c.submitter_phone ? maskPhone(c.submitter_phone) : undefined,
+    }));
+
+    const response = NextResponse.json({ success: true, count: safeComplaints.length, data: safeComplaints });
     return applySecurityHeaders(response);
   } catch (error: any) {
     const response = NextResponse.json({ error: error.message }, { status: 500 });

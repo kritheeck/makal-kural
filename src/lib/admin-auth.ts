@@ -42,8 +42,11 @@ export function withAdminAuth(handler: (req: NextRequest) => Promise<NextRespons
 }
 
 export function getAdminHeaders(): Record<string, string> {
+  // Client side: read from localStorage (set during admin login flow)
+  // Server side: read from environment (ADMIN_SECRET_KEY is a server-only var)
+  // NOTE: Never use NEXT_PUBLIC_ prefix for admin keys — that would expose them in client bundles.
   const key = typeof window !== 'undefined'
-    ? (localStorage.getItem('mk_admin_key') || process.env.NEXT_PUBLIC_ADMIN_SECRET_KEY || 'makkal_kural_admin_2026')
+    ? (localStorage.getItem('mk_admin_key') || 'makkal_kural_admin_2026')
     : (process.env.ADMIN_SECRET_KEY || 'makkal_kural_admin_2026');
   return {
     'Authorization': `Bearer ${key}`,
